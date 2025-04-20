@@ -6,6 +6,7 @@ import { ArrowLeft, HelpCircle, RefreshCw } from "lucide-react";
 import { PuzzleGame } from "@/components/PuzzleGame";
 import { PuzzleHint } from "@/components/PuzzleHint";
 import { PuzzleLevel } from "@/components/PuzzleLevel";
+import { AudioPlayer } from "@/components/AudioPlayer";
 
 const Puzzle = () => {
   const [level, setLevel] = useState(1);
@@ -36,6 +37,15 @@ const Puzzle = () => {
     setLevel((prev) => prev + 1);
     setTimeLeft(Math.max(60, timeLeft + 15)); // Добавляем немного времени за правильное решение
     setShowHint(false);
+    
+    // Попробуем воспроизвести звук успеха
+    try {
+      const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
+      successSound.volume = 0.8;
+      successSound.play().catch(err => console.error("Failed to play success sound:", err));
+    } catch (error) {
+      console.error("Error playing success sound:", error);
+    }
   };
 
   const handleRetry = () => {
@@ -44,6 +54,15 @@ const Puzzle = () => {
     setTimeLeft(60);
     setIsPlaying(true);
     setShowHint(false);
+    
+    // Попробуем воспроизвести звук перезапуска
+    try {
+      const restartSound = new Audio("https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum.ogg");
+      restartSound.volume = 0.8;
+      restartSound.play().catch(err => console.error("Failed to play restart sound:", err));
+    } catch (error) {
+      console.error("Error playing restart sound:", error);
+    }
   };
 
   return (
@@ -67,6 +86,11 @@ const Puzzle = () => {
           >
             <HelpCircle className="h-5 w-5" />
           </Button>
+        </div>
+        
+        {/* Аудиоплеер */}
+        <div className="mb-4">
+          <AudioPlayer autoPlay={true} />
         </div>
 
         {/* Статистика */}
