@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Volume2, VolumeX, Music, Play, Pause } from "lucide-react";
+import { Volume2, VolumeX, Play, Pause } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 interface AudioPlayerProps {
@@ -12,30 +12,50 @@ export const AudioPlayer = ({ autoPlay = false }: AudioPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [audioReady, setAudioReady] = useState(false);
+  const [audioLoaded, setAudioLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Создаем аудиоэлемент при монтировании
   useEffect(() => {
-    audioRef.current = new Audio("/audio/happy-background.mp3");
+    // Используем встроенный элемент аудио вместо создания через new Audio()
+    const audio = document.createElement('audio');
     
-    // Используем встроенное аудио как запасной вариант
-    if (!audioRef.current.canPlayType("audio/mpeg")) {
-      audioRef.current = new Audio("https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum.ogg");
-    }
+    // Пробуем несколько источников, если один не работает
+    const sources = [
+      "https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg",
+      "https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum.ogg",
+      "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg"
+    ];
     
-    audioRef.current.loop = true;
+    // Настройка аудио
+    audio.loop = true;
+    audio.volume = volume / 100;
+    audio.src = sources[0]; // Начальный источник
     
-    // Применяем начальную громкость
-    if (audioRef.current) {
-      audioRef.current.volume = volume / 100;
-    }
+    // Обработчики событий
+    audio.addEventListener('canplaythrough', () => {
+      setAudioLoaded(true);
+      setAudioReady(true);
+    });
     
-    setAudioReady(true);
+    audio.addEventListener('error', () => {
+      // Если не удается загрузить текущий источник, пробуем следующий
+      const currentIndex = sources.indexOf(audio.src);
+      if (currentIndex < sources.length - 1) {
+        audio.src = sources[currentIndex + 1];
+      } else {
+        console.error("Не удалось загрузить ни один аудиофайл");
+      }
+    });
+    
+    audioRef.current = audio;
     
     // Очистка при размонтировании
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current.remove();
         audioRef.current = null;
       }
     };
@@ -43,21 +63,22 @@ export const AudioPlayer = ({ autoPlay = false }: AudioPlayerProps) => {
   
   // Эффект для управления проигрыванием
   useEffect(() => {
-    if (!audioRef.current || !audioReady) return;
+    if (!audioRef.current || !audioReady || !audioLoaded) return;
     
     if (isPlaying) {
+      // Обработка воспроизведения с user gesture
       const playPromise = audioRef.current.play();
       
       if (playPromise !== undefined) {
         playPromise.catch(err => {
-          console.error("Failed to play:", err);
+          console.error("Не удалось воспроизвести аудио:", err.message);
           setIsPlaying(false);
         });
       }
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, audioReady]);
+  }, [isPlaying, audioReady, audioLoaded]);
   
   // Эффект для управления громкостью
   useEffect(() => {
@@ -67,6 +88,12 @@ export const AudioPlayer = ({ autoPlay = false }: AudioPlayerProps) => {
   }, [volume]);
   
   const togglePlayback = () => {
+    if (!audioLoaded) {
+      // Если аудио еще не загружено, пробуем загрузить при клике
+      if (audioRef.current) {
+        audioRef.current.load();
+      }
+    }
     setIsPlaying(!isPlaying);
   };
   
@@ -114,7 +141,7 @@ export const AudioPlayer = ({ autoPlay = false }: AudioPlayerProps) => {
       </div>
       
       <span className="text-sm text-[#8E9196]">
-        {isPlaying ? "Играет" : "Пауза"}
+        {!audioLoaded ? "Загрузка..." : isPlaying ? "Играет" : "Пауза"}
       </span>
     </div>
   );

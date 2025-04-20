@@ -39,18 +39,28 @@ const Puzzle = () => {
     setTimeLeft(Math.max(60, timeLeft + 15)); // Добавляем немного времени за правильное решение
     setShowHint(false);
     
-    // Звуковые эффекты только при включенном звуке
+    // Звуковые эффекты без использования Audio API
     if (audioEnabled) {
       try {
-        const successSound = new Audio("/audio/level-complete.mp3");
-        // Запасной вариант, если основной файл не найден
-        if (!successSound.canPlayType("audio/mpeg")) {
-          successSound.src = "https://actions.google.com/sounds/v1/cartoon/pop.ogg";
-        }
-        successSound.volume = 0.8;
-        successSound.play().catch(err => console.log("Звуковой эффект не воспроизведен"));
+        // Используем Web Audio API как альтернативу
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+        oscillator.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 0.3); // A4
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.3);
       } catch (error) {
-        console.log("Невозможно воспроизвести звук");
+        console.log("Звуковой эффект не поддерживается в этом браузере");
       }
     }
   };
@@ -62,18 +72,28 @@ const Puzzle = () => {
     setIsPlaying(true);
     setShowHint(false);
     
-    // Звуковые эффекты только при включенном звуке
+    // Звуковые эффекты без использования Audio API
     if (audioEnabled) {
       try {
-        const restartSound = new Audio("/audio/game-restart.mp3");
-        // Запасной вариант, если основной файл не найден
-        if (!restartSound.canPlayType("audio/mpeg")) {
-          restartSound.src = "https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum.ogg";
-        }
-        restartSound.volume = 0.8;
-        restartSound.play().catch(err => console.log("Звуковой эффект не воспроизведен"));
+        // Используем Web Audio API как альтернативу
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(110, audioContext.currentTime); // A2
+        oscillator.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 0.5); // A4
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.5);
       } catch (error) {
-        console.log("Невозможно воспроизвести звук");
+        console.log("Звуковой эффект не поддерживается в этом браузере");
       }
     }
   };
