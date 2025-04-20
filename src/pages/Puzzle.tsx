@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, HelpCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, HelpCircle, RefreshCw, VolumeX, Volume2 } from "lucide-react";
 import { PuzzleGame } from "@/components/PuzzleGame";
 import { PuzzleHint } from "@/components/PuzzleHint";
 import { PuzzleLevel } from "@/components/PuzzleLevel";
@@ -14,6 +14,7 @@ const Puzzle = () => {
   const [showHint, setShowHint] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [audioEnabled, setAudioEnabled] = useState(true);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -38,13 +39,19 @@ const Puzzle = () => {
     setTimeLeft(Math.max(60, timeLeft + 15)); // Добавляем немного времени за правильное решение
     setShowHint(false);
     
-    // Попробуем воспроизвести звук успеха
-    try {
-      const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
-      successSound.volume = 0.8;
-      successSound.play().catch(err => console.error("Failed to play success sound:", err));
-    } catch (error) {
-      console.error("Error playing success sound:", error);
+    // Звуковые эффекты только при включенном звуке
+    if (audioEnabled) {
+      try {
+        const successSound = new Audio("/audio/level-complete.mp3");
+        // Запасной вариант, если основной файл не найден
+        if (!successSound.canPlayType("audio/mpeg")) {
+          successSound.src = "https://actions.google.com/sounds/v1/cartoon/pop.ogg";
+        }
+        successSound.volume = 0.8;
+        successSound.play().catch(err => console.log("Звуковой эффект не воспроизведен"));
+      } catch (error) {
+        console.log("Невозможно воспроизвести звук");
+      }
     }
   };
 
@@ -55,14 +62,24 @@ const Puzzle = () => {
     setIsPlaying(true);
     setShowHint(false);
     
-    // Попробуем воспроизвести звук перезапуска
-    try {
-      const restartSound = new Audio("https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum.ogg");
-      restartSound.volume = 0.8;
-      restartSound.play().catch(err => console.error("Failed to play restart sound:", err));
-    } catch (error) {
-      console.error("Error playing restart sound:", error);
+    // Звуковые эффекты только при включенном звуке
+    if (audioEnabled) {
+      try {
+        const restartSound = new Audio("/audio/game-restart.mp3");
+        // Запасной вариант, если основной файл не найден
+        if (!restartSound.canPlayType("audio/mpeg")) {
+          restartSound.src = "https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum.ogg";
+        }
+        restartSound.volume = 0.8;
+        restartSound.play().catch(err => console.log("Звуковой эффект не воспроизведен"));
+      } catch (error) {
+        console.log("Невозможно воспроизвести звук");
+      }
     }
+  };
+
+  const toggleAudio = () => {
+    setAudioEnabled(!audioEnabled);
   };
 
   return (
@@ -79,19 +96,34 @@ const Puzzle = () => {
             <h1 className="text-2xl font-bold text-[#9b87f5]">ИнфиниУм</h1>
             <p className="text-[#8E9196]">Головоломка для пытливых умов</p>
           </div>
-          <Button 
-            variant="ghost" 
-            className="text-[#9b87f5]"
-            onClick={() => setShowHint(!showHint)}
-          >
-            <HelpCircle className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              className="text-[#9b87f5]"
+              onClick={toggleAudio}
+            >
+              {audioEnabled ? (
+                <Volume2 className="h-5 w-5" />
+              ) : (
+                <VolumeX className="h-5 w-5" />
+              )}
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="text-[#9b87f5]"
+              onClick={() => setShowHint(!showHint)}
+            >
+              <HelpCircle className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
         
-        {/* Аудиоплеер */}
-        <div className="mb-4">
-          <AudioPlayer autoPlay={true} />
-        </div>
+        {/* Аудиоплеер - только показываем при включенном звуке */}
+        {audioEnabled && (
+          <div className="mb-4">
+            <AudioPlayer />
+          </div>
+        )}
 
         {/* Статистика */}
         <div className="grid grid-cols-3 gap-4 mb-6">

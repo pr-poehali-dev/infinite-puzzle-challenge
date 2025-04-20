@@ -1,21 +1,28 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Volume2, VolumeX, Music } from "lucide-react";
+import { Volume2, VolumeX, Music, Play, Pause } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 interface AudioPlayerProps {
   autoPlay?: boolean;
 }
 
-export const AudioPlayer = ({ autoPlay = true }: AudioPlayerProps) => {
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
+export const AudioPlayer = ({ autoPlay = false }: AudioPlayerProps) => {
+  const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
+  const [audioReady, setAudioReady] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Создаем аудиоэлемент при монтировании
   useEffect(() => {
-    audioRef.current = new Audio("https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg");
+    audioRef.current = new Audio("/audio/happy-background.mp3");
+    
+    // Используем встроенное аудио как запасной вариант
+    if (!audioRef.current.canPlayType("audio/mpeg")) {
+      audioRef.current = new Audio("https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum.ogg");
+    }
+    
     audioRef.current.loop = true;
     
     // Применяем начальную громкость
@@ -23,19 +30,7 @@ export const AudioPlayer = ({ autoPlay = true }: AudioPlayerProps) => {
       audioRef.current.volume = volume / 100;
     }
     
-    // Автоматическое проигрывание может быть заблокировано браузером,
-    // поэтому оборачиваем в try-catch
-    if (autoPlay) {
-      try {
-        audioRef.current.play().catch(() => {
-          console.log("Autoplay prevented by browser, user interaction required");
-          setIsPlaying(false);
-        });
-      } catch (error) {
-        console.error("Error playing audio:", error);
-        setIsPlaying(false);
-      }
-    }
+    setAudioReady(true);
     
     // Очистка при размонтировании
     return () => {
@@ -44,21 +39,25 @@ export const AudioPlayer = ({ autoPlay = true }: AudioPlayerProps) => {
         audioRef.current = null;
       }
     };
-  }, [autoPlay]);
+  }, []);
   
   // Эффект для управления проигрыванием
   useEffect(() => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !audioReady) return;
     
     if (isPlaying) {
-      audioRef.current.play().catch(err => {
-        console.error("Failed to play:", err);
-        setIsPlaying(false);
-      });
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.error("Failed to play:", err);
+          setIsPlaying(false);
+        });
+      }
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, audioReady]);
   
   // Эффект для управления громкостью
   useEffect(() => {
@@ -83,7 +82,11 @@ export const AudioPlayer = ({ autoPlay = true }: AudioPlayerProps) => {
         onClick={togglePlayback}
         className="text-[#9b87f5] hover:bg-[#7E69AB]/20"
       >
-        {isPlaying ? <Music className="h-5 w-5 animate-pulse" /> : <Music className="h-5 w-5" />}
+        {isPlaying ? (
+          <Pause className="h-5 w-5" />
+        ) : (
+          <Play className="h-5 w-5" />
+        )}
       </Button>
       
       <div className="flex-1 flex items-center space-x-2">
@@ -109,6 +112,10 @@ export const AudioPlayer = ({ autoPlay = true }: AudioPlayerProps) => {
           className="w-24"
         />
       </div>
+      
+      <span className="text-sm text-[#8E9196]">
+        {isPlaying ? "Играет" : "Пауза"}
+      </span>
     </div>
   );
 };
